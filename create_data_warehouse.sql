@@ -1,5 +1,5 @@
 -- =============================================
--- Data Warehouse Generation Script (Star Schema) - FIXED
+-- Data Warehouse Generation Script (Star Schema) - Updated
 -- Target: Power BI Dashboard
 -- =============================================
 
@@ -19,6 +19,7 @@ WHERE [year] >= '04'
 GO
 
 -- 2. Create Dimension: Employee (DimEmployee)
+-- Kept simple (PersonNo only) to handle historical changes (e.g. Dept changes) in the Fact table.
 IF OBJECT_ID('dbo.DimEmployee', 'U') IS NOT NULL DROP TABLE dbo.DimEmployee;
 
 SELECT DISTINCT 
@@ -29,13 +30,13 @@ WHERE [year] >= '04';
 GO
 
 -- 3. Create Fact Table: Salary (FactSalary)
--- Fixed: Removed explicit selection of columns that are already included in *
+-- This will now include the renamed columns: Department, Businessline, HRBP, JobTitle
 IF OBJECT_ID('dbo.FactSalary', 'U') IS NOT NULL DROP TABLE dbo.FactSalary;
 
 SELECT 
-    -- Generate PeriodKey to join with DimPeriod
+    -- Generate PeriodKey
     CAST((CASE WHEN LEN([year]) = 2 THEN '14' + [year] ELSE [year] END) AS INT) * 100 + [MonthNumber] AS PeriodKey,
-    -- Select all other columns from the source table
+    -- Select all columns (includes Department, Businessline, HRBP, JobTitle)
     *
 INTO dbo.FactSalary
 FROM dbo.stg_SalaryRaw
@@ -43,11 +44,9 @@ WHERE [year] >= '04'
   AND [MonthNumber] IS NOT NULL;
 GO
 
--- 4. Clean up columns in FactTable (Optional)
--- Removing redundant columns from Fact table after creation
+-- 4. Cleanup
+-- Remove redundant columns from FactTable
 ALTER TABLE dbo.FactSalary DROP COLUMN [PeriodName];
--- You can uncomment these if you want to save more space, but keeping them is often harmless:
--- ALTER TABLE dbo.FactSalary DROP COLUMN [year];
--- ALTER TABLE dbo.FactSalary DROP COLUMN [month];
--- ALTER TABLE dbo.FactSalary DROP COLUMN [MonthNumber];
+-- The following columns are preserved in the Fact table for easy slicing/dicing:
+-- Department, Businessline, HRBP, JobTitle, EmployeeStatus, ExitDate, year, month
 GO
