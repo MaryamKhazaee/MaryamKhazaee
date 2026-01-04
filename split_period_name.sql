@@ -1,4 +1,16 @@
--- Add new columns for year and month (swapped definition order)
+-- Drop existing columns if they exist to avoid errors
+IF EXISTS(SELECT * FROM sys.columns WHERE Name = N'year' AND Object_ID = Object_ID(N'dbo.stg_SalaryRaw'))
+BEGIN
+    ALTER TABLE dbo.stg_SalaryRaw DROP COLUMN [year];
+END
+
+IF EXISTS(SELECT * FROM sys.columns WHERE Name = N'month' AND Object_ID = Object_ID(N'dbo.stg_SalaryRaw'))
+BEGIN
+    ALTER TABLE dbo.stg_SalaryRaw DROP COLUMN [month];
+END
+GO
+
+-- Add new columns for year (number) and month (text)
 ALTER TABLE dbo.stg_SalaryRaw 
 ADD [month] NVARCHAR(50), 
     [year] NVARCHAR(10);
